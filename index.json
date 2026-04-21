@@ -3,7 +3,7 @@
         "name": "拷贝漫画",
         "fileName": "copy_manga.js",
         "key": "copy_manga",
-        "version": "1.4.1"
+        "version": "1.4.2"
     },
     {
         "name": "Komiic",
@@ -27,7 +27,7 @@
         "name": "nhentai",
         "fileName": "nhentai.js",
         "key": "nhentai",
-        "version": "1.0.6"
+        "version": "1.0.8"
     },
     {
         "name": "紳士漫畫",
