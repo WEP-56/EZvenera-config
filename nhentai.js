@@ -7,7 +7,7 @@ class Nhentai extends ComicSource {
     // unique id of the source
     key = "nhentai"
 
-    version = "1.0.9"
+    version = "1.0.8"
 
     minAppVersion = "1.0.0"
 
@@ -371,38 +371,7 @@ class Nhentai extends ComicSource {
             category = category.replaceAll(" ", "-")
             let sort = (options[0] || "popular").replaceAll("@", "-")
             category = category.replaceAll('.', '-');
-            
-            // 移除sort开头的斜杠
-            sort = sort.replace(/^\//, '');
-            
-            // 构建基础URL
-            let url = `${this.baseUrl}/${param}/${encodeURIComponent(category)}`;
-            
-            // 构建查询参数
-            let params = [];
-            
-            // 添加排序参数
-            if (sort && sort !== '-Recent') {
-                // 处理热门分类的排序参数
-                if (sort === 'popular') {
-                    params.push('sort=popular');
-                } else if (sort === 'popular-today') {
-                    params.push('sort=popular-today');
-                } else if (sort === 'popular-week') {
-                    params.push('sort=popular-week');
-                } else if (sort === 'popular-month') {
-                    params.push('sort=popular-month');
-                }
-            }
-            
-            // 添加分页参数
-            params.push(`page=${page}`);
-            
-            // 组合URL和查询参数
-            if (params.length > 0) {
-                url += `?${params.join('&')}`;
-            }
-            
+            let url = `${this.baseUrl}/${param}/${encodeURIComponent(category)}${sort}?page=${page}`
             let res = await Network.get(url, {})
             return this.parseComicList(res.body, 'category')
         },
@@ -681,125 +650,47 @@ class Nhentai extends ComicSource {
         loadEp: async (comicId, epId) => {
             comicId = this.normalizeComicId(comicId)
 
-            // 尝试通过 API 获取图片数据
-            let apiRes = await Network.get(`${this.apiBaseUrl}/galleries/${comicId}`, {})
+            let apiRes = await Network.get(`${this.apiBaseUrl}/galleries/${comicId}/pages`, {})
             if (apiRes.status === 200) {
                 let apiData = JSON.parse(apiRes.body)
-                if (apiData.pages && apiData.media_id) {
-                    let images = apiData.pages.map((page, index) => {
-                        // 从 path 中提取扩展名
-                        let path = page.path || ''
-                        let ext = 'jpg'
-                        if (path.includes('.webp')) {
-                            ext = 'webp'
-                        } else if (path.includes('.png')) {
-                            ext = 'png'
-                        } else if (path.includes('.gif')) {
-                            ext = 'gif'
-                        }
-                        return `https://i3.nhentai.net/galleries/${apiData.media_id}/${index + 1}.${ext}`
-                    })
-                    if (images.length > 0) {
-                        return { images: images }
-                    }
-                }
-            }
-
-            // 尝试通过网页解析获取图片数据
-            let res = await Network.get(`${this.baseUrl}/g/${comicId}/1/`, {
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                    'Referer': 'https://nhentai.net/'
-                }
-            })
-            if(res.status !== 200) {
-                throw "Invalid Status Code: " + res.status
-            }
-            let document = new HtmlDocument(res.body)
-
-            // 尝试多种方式提取数据
-            let mediaId = null
-            let pages = []
-
-            // 方式1: 查找包含 gallery 数据的 script 标签
-            let scriptElements = document.querySelectorAll("script")
-            for (let script of scriptElements) {
-                if (!script.text) continue
-                
-                // 尝试匹配 window._gallery 格式
-                if (script.text.includes("window._gallery")) {
-                    try {
-                        let jsonMatch = script.text.match(/JSON\.parse\(["']([^"']+)["']\)/)
-                        if (jsonMatch && jsonMatch[1]) {
-                            let json = jsonMatch[1]
-                            let decodedJsonText = json.replaceAll("\\u0022", "\"").replaceAll("\\u005C", "\\")
-                            let data = JSON.parse(decodedJsonText)
-                            if (data.media_id && data.images?.pages) {
-                                mediaId = data.media_id
-                                pages = data.images.pages
-                                break
-                            }
-                        }
-                    } catch (e) {
-                        // 解析失败，继续尝试其他方式
-                    }
-                }
-                
-                // 方式2: 查找直接包含 gallery 数据的 script 标签
-                if (script.text.includes("media_id")) {
-                    try {
-                        let mediaIdMatch = script.text.match(/media_id:\s*(\d+)/)
-                        let pagesMatch = script.text.match(/pages:\s*\[(.*?)\]/s)
-                        if (mediaIdMatch && pagesMatch) {
-                            mediaId = mediaIdMatch[1]
-                            // 尝试解析 pages 数组
-                            let pagesText = pagesMatch[1]
-                            // 简单解析 pages 数据
-                            let pageMatches = pagesText.match(/\{[^}]+\}/g)
-                            if (pageMatches) {
-                                pages = pageMatches.map(pageStr => {
-                                    let tMatch = pageStr.match(/t:\s*['"]([^'"]+)['"]/)
-                                    return { t: tMatch ? tMatch[1] : 'j' }
-                                })
-                                break
-                            }
-                        }
-                    } catch (e) {
-                        // 解析失败，继续尝试
-                    }
-                }
-            }
-
-            // 如果找到了 mediaId 和 pages，生成图片链接
-            if (mediaId && pages.length > 0) {
-                let images = []
-                for (let i = 0; i < pages.length; i++) {
-                    let image = pages[i]
-                    let ext = 'jpg'
-                    switch(image.t) {
-                        case 'p': ext = 'png'; break
-                        case 'g': ext = 'gif'; break
-                        case 'w': ext = 'webp'; break
-                    }
-                    images.push(`https://i3.nhentai.net/galleries/${mediaId}/${i + 1}.${ext}`)
-                }
-                return { images: images }
-            }
-
-            // 方式3: 直接从页面中提取图片链接
-            let imgElements = document.querySelectorAll("img.lazyload")
-            if (imgElements.length > 0) {
-                let images = imgElements
-                    .map(img => img.attributes?.["data-src"] || img.attributes?.["src"] || "")
-                    .filter(url => url && url.includes("nhentai.net"))
-                    .map(url => this.toAbsoluteMediaUrl(url, false))
+                let images = (apiData.pages || []).map(p => this.toAbsoluteMediaUrl(p.path, false))
                 if (images.length > 0) {
                     return { images: images }
                 }
             }
 
-            // 所有方法都失败，抛出错误
-            throw "Failed to load images for this gallery"
+            let res = await Network.get(`${this.baseUrl}/g/${comicId}/1/`, {})
+            if(res.status !== 200) {
+                throw "Invalid Status Code: " + res.status
+            }
+            let document = new HtmlDocument(res.body)
+            let script = document.querySelectorAll("script").find((e) => {
+                return e.text.includes("window._gallery")
+            }).text
+            let json = script.split('JSON.parse("')[1].split('");')[0]
+            let decodedJsonText =
+                json.replaceAll("\\u0022", "\"").replaceAll("\\u005C", "\\");
+            let data = JSON.parse(decodedJsonText)
+            let mediaId = data.media_id
+            let images = []
+            for (let image of data.images.pages) {
+                let ext = 'jpg'
+                switch(image.t) {
+                    case 'p':
+                        ext = 'png'
+                        break
+                    case 'g':
+                        ext = 'gif'
+                        break
+                    case 'w':
+                        ext = 'webp'
+                        break
+                }
+                images.push(`https://i3.nhentai.net/galleries/${mediaId}/${images.length + 1}.${ext}`)
+            }
+            return {
+                images: images,
+            }
         },
         /**
          * [Optional] load comments
