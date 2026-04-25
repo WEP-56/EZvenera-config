@@ -1,16 +1,33 @@
+<p align="center">
+  <img src="assets/ico.png" alt="Logo" width="180" />
+</p>
+
 # EZVenera-config
 
-Configuration repository for EZVenera comic source plugins.
+这是 EZVenera 的主插件仓库，用来维护 EZVenera 使用的漫画源脚本。
 
-Current strategy:
 
-- start from the original Venera source set
-- keep compatibility with EZVenera's simplified runtime
-- gradually clean, verify and evolve sources under EZVenera maintenance
+## 仓库用途
 
-## Runtime Compatibility
+这个仓库主要放三类内容：
 
-EZVenera currently keeps these plugin areas:
+1. 实际可安装的漫画源脚本
+   - 例如 `jm.js`、`nhentai.js`、`picacg.js`
+2. 插件模板与运行时声明
+   - `_template_.js`
+   - `_venera_.js`
+3. 源索引
+   - `index.json`
+
+其中：
+
+- `_template_.js` 用来作为新建源的起点（但不一定适用于EZVenera）
+- `_venera_.js` 用来给编辑器提供类型提示和字段说明
+- `index.json` 用来给 EZVenera 的“源列表”页面提供索引数据
+
+## 当前兼容边界
+
+EZVenera 当前重点保留这些插件能力：
 
 - `account`
 - `search`
@@ -23,22 +40,94 @@ EZVenera currently keeps these plugin areas:
 - `settings`
 - `comic.link`
 - `comic.idMatch`
+- `translation`
 
-Unsupported fields may still exist in source files for original Venera compatibility, but EZVenera ignores them.
+当前也已经支持：
 
-## Create or Update a Source
+- `categoryComics.optionLoader`
+- `categoryComics.ranking.load`
+- `categoryComics.ranking.loadNext`
+- `categoryComics.ranking.loadWithNext`
 
-1. Put `_template_.js` and `_venera_.js` in the same directory.
-2. Rename `_template_.js` to your source file name.
-3. Implement the retained EZVenera capability set first.
-4. Update `index.json` when adding or publishing a source.
+有些源文件里仍然会保留原版 Venera 的其他字段，这是为了继续兼容原项目；EZVenera 对这些未接入能力通常会直接忽略，不会全部参与实际功能。
 
-## Repositories
+## 新建或更新一个源
 
-App:
+在制作前，请务必阅读文档：https://wep-56.github.io/EZVenera/plugin-guide.html
+
+建议顺序：
+
+1. 把 `_template_.js` 和 `_venera_.js` 放在同一目录下使用
+2. 复制 `_template_.js`，改成你的源文件名
+3. 先把 EZVenera 当前保留的主链路做通
+   - 搜索或分类入口
+   - 详情页
+   - 章节页
+   - 图片链路
+4. 新增或发布源时同步更新 `index.json`
+
+如果是从原版 Venera 源移植过来，建议优先保证：
+
+- `search`
+- `category`
+- `categoryComics`
+- `comic.loadInfo`
+- `comic.loadEp`
+
+不要先花时间处理 EZVenera 当前未接入的：
+
+- `explore`
+- `favorites`
+- 评论相关
+- 评分相关
+- `settings.callback`
+
+## 模板文件说明
+
+### `_template_.js`
+
+这是新建源最适合复制的模板，里面已经把常见字段、函数签名和注释都铺好了。
+
+### `_venera_.js`
+
+这是运行时声明文件，主要用于：
+
+- 提示 `ComicSource`、`Comic`、`ComicDetails`、`ImageLoadingConfig` 等结构
+- 给编辑器提供 JSDoc 类型补全
+- 说明常见字段的预期格式
+
+写源时建议在文件开头保留：
+
+```js
+/** @type {import('./_venera_.js')} */
+```
+
+## `index.json`
+
+`index.json` 是源索引文件。EZVenera 应用会读取它来展示“漫画源列表”，因此：
+
+- 新增源时要加到这里
+- 下架或重命名源时也要同步更新这里
+- 这里的链接应指向最终可下载的 `.js` 文件地址
+
+## 相关仓库
+
+应用主仓库：
 
 - [WEP-56/EZVenera](https://github.com/WEP-56/EZVenera)
 
-Source configs:
+插件仓库：
 
 - [WEP-56/EZvenera-config](https://github.com/WEP-56/EZvenera-config)
+
+## 维护建议
+
+如果你在这个仓库里维护源，推荐优先关注：
+
+1. 能不能安装
+2. 搜索 / 分类能不能正常进详情页
+3. 阅读图片能不能稳定加载
+4. 是否需要 `onImageLoad` / `onThumbnailLoad`
+5. 是否需要 `modifyImage`
+
+原因很简单：EZVenera 当前的核心体验就是“搜索 / 分类 -> 详情 -> 阅读 / 下载”，源脚本越贴近这条主链路，实际可用性越高。
