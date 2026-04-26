@@ -1,18 +1,17 @@
 // ================================================================
-// MANGA Plus by SHUEISHA  -  EZVenera 插件
-// API: https://jumpg-webapi.tokyo-cdn.com/api
-// 图片有 XOR 加密，通过 modifyImage 脚本处理
+// MANGA Plus by SHUEISHA - EZVenera plugin
 // ================================================================
 
 class MangaPlus extends ComicSource {
     name = "MANGA Plus"
     key = "manga_plus"
-    version = "1.0.0"
+    version = "1.0.2"
     minAppVersion = "1.2.2"
-    url = "https://cdn.jsdelivr.net/gh/venera-app/venera-configs@main/manga_plus.js"
+    url = "https://raw.githubusercontent.com/YOUR_NAME/YOUR_REPO/main/manga_plus.js"
 
-    // ── 内部常量 ──────────────────────────────────────────────
-    get API() { return "https://jumpg-webapi.tokyo-cdn.com/api" }
+    get API() {
+        return "https://jumpg-webapi.tokyo-cdn.com/api"
+    }
 
     get HEADERS() {
         return {
@@ -22,24 +21,23 @@ class MangaPlus extends ComicSource {
         }
     }
 
-    // ── 设置项 ────────────────────────────────────────────────
     settings = {
         language: {
-            title: "语言 / Language",
+            title: "Language",
             type: "select",
             options: [
                 { value: "0", text: "English" },
-                { value: "1", text: "日本語 (Japanese)" },
-                { value: "2", text: "Español (Spanish)" },
-                { value: "3", text: "Français (French)" },
-                { value: "4", text: "Português (Portuguese)" },
-                { value: "5", text: "Русский (Russian)" },
-                { value: "6", text: "Bahasa Indonesia" },
-                { value: "8", text: "Deutsch (German)" },
-                { value: "10", text: "中文繁體 (Traditional Chinese)" },
-                { value: "11", text: "中文简体 (Simplified Chinese)" },
-                { value: "12", text: "Türkçe (Turkish)" },
-                { value: "13", text: "한국어 (Korean)" }
+                { value: "1", text: "Japanese" },
+                { value: "2", text: "Spanish" },
+                { value: "3", text: "French" },
+                { value: "4", text: "Portuguese" },
+                { value: "5", text: "Russian" },
+                { value: "6", text: "Indonesian" },
+                { value: "8", text: "German" },
+                { value: "10", text: "Traditional Chinese" },
+                { value: "11", text: "Simplified Chinese" },
+                { value: "12", text: "Turkish" },
+                { value: "13", text: "Korean" }
             ],
             default: "0"
         }
@@ -49,68 +47,44 @@ class MangaPlus extends ComicSource {
         return parseInt(this.loadSetting("language") ?? "0")
     }
 
-    // ── 搜索 ──────────────────────────────────────────────────
-    // MangaPlus 没有分页搜索接口，拉全量本地过滤
     search = {
         load: async (keyword, options, page) => {
-            if (page > 1) return { comics: [], maxPage: 1 }
-
-            let res = await Network.get(
-                `${this.API}/title_list/allV2?format=json`,
-                this.HEADERS
-            )
-            if (res.status !== 200) throw `HTTP ${res.status}`
-
-            let json = JSON.parse(res.body)
-            let allGroups = json?.success?.allTitlesViewV2?.AllTitlesGroup ?? []
-
-            let allTitles = []
-            for (let group of allGroups) {
-                for (let t of (group.titles ?? [])) {
-                    allTitles.push(t)
-                }
+            if (page > 1) {
+                return { comics: [], maxPage: 1 }
             }
 
-            let kw = keyword.toLowerCase()
-            let filtered = allTitles.filter(t => {
-                let nameMatch = (t.name ?? "").toLowerCase().includes(kw)
-                    || (t.author ?? "").toLowerCase().includes(kw)
-                let langMatch = t.language === this.lang || t.language === undefined
-                return nameMatch && langMatch
+            const titles = await this._loadAllTitles()
+            const kw = (keyword ?? "").trim().toLowerCase()
+            const filtered = titles.filter((title) => {
+                if (!this._matchLanguage(title)) {
+                    return false
+                }
+                if (!kw) {
+                    return true
+                }
+                return (title.name ?? "").toLowerCase().includes(kw) ||
+                    (title.author ?? "").toLowerCase().includes(kw)
             })
 
             return {
-                comics: filtered.map(t => this._titleToComic(t)),
+                comics: filtered.map((title) => this._toComic(title)),
                 maxPage: 1
             }
         }
     }
 
-    // ── 分类 ──────────────────────────────────────────────────
     category = {
-        title: "分类",
+        title: "Browse",
         enableRankingPage: true,
         parts: [
             {
-                name: "浏览",
+                name: "Browse",
                 type: "fixed",
                 categories: [
-                    {
-                        label: "最新更新",
-                        target: { page: "category", attributes: { category: "updates", param: null } }
-                    },
-                    {
-                        label: "热门连载",
-                        target: { page: "category", attributes: { category: "serializing", param: null } }
-                    },
-                    {
-                        label: "完结作品",
-                        target: { page: "category", attributes: { category: "completed", param: null } }
-                    },
-                    {
-                        label: "短篇",
-                        target: { page: "category", attributes: { category: "oneshots", param: null } }
-                    }
+                    { label: "Latest Updates", target: { page: "category", attributes: { category: "updates", param: null } } },
+                    { label: "Serializing", target: { page: "category", attributes: { category: "serializing", param: null } } },
+                    { label: "Completed", target: { page: "category", attributes: { category: "completed", param: null } } },
+                    { label: "One-shots", target: { page: "category", attributes: { category: "oneshots", param: null } } }
                 ]
             }
         ]
@@ -119,227 +93,246 @@ class MangaPlus extends ComicSource {
     categoryComics = {
         ranking: {
             options: [
-                "hottest-热门榜",
-                "trending-趋势榜",
-                "completed-完结榜"
+                "hottest-Hottest",
+                "trending-Trending",
+                "completed-Completed"
             ],
             load: async (option, page) => {
-                const rankMap = { "hottest": 0, "trending": 1, "completed": 2 }
-                let rankType = rankMap[option] ?? 0
-                let res = await Network.get(
-                    `${this.API}/title_list/ranking?format=json&rankingType=${rankType}`,
+                const rankMap = {
+                    hottest: 0,
+                    trending: 1,
+                    completed: 2
+                }
+                const res = await Network.get(
+                    `${this.API}/title_list/ranking?format=json&rankingType=${rankMap[option] ?? 0}`,
                     this.HEADERS
                 )
-                if (res.status !== 200) throw `HTTP ${res.status}`
-                let json = JSON.parse(res.body)
-                let titles = json?.success?.titleRankingView?.titles ?? []
-                let filtered = titles.filter(t => t.language === this.lang || t.language === undefined)
+                if (res.status !== 200) {
+                    throw `HTTP ${res.status}`
+                }
+
+                const json = JSON.parse(res.body)
+                const titles = (json?.success?.titleRankingView?.titles ?? [])
+                    .filter((title) => this._matchLanguage(title))
+
                 return {
-                    comics: filtered.map(t => this._titleToComic(t)),
+                    comics: titles.map((title) => this._toComic(title)),
                     maxPage: 1
                 }
             }
         },
 
         load: async (category, param, options, page) => {
-            if (page > 1) return { comics: [], maxPage: 1 }
+            if (page > 1) {
+                return { comics: [], maxPage: 1 }
+            }
 
             let titles = []
-
             if (category === "updates") {
-                let res = await Network.get(
+                const res = await Network.get(
                     `${this.API}/web/web_homeV4?format=json&lang=${this.lang}`,
                     this.HEADERS
                 )
-                if (res.status !== 200) throw `HTTP ${res.status}`
-                let json = JSON.parse(res.body)
-                let groups = json?.success?.webHomeViewV4?.groups ?? []
-                for (let g of groups) {
-                    for (let item of (g.titleGroups ?? [])) {
-                        for (let t of (item.titles ?? [])) {
-                            if (t.title) titles.push(t.title)
+                if (res.status !== 200) {
+                    throw `HTTP ${res.status}`
+                }
+
+                const json = JSON.parse(res.body)
+                for (const group of (json?.success?.webHomeViewV4?.groups ?? [])) {
+                    for (const titleGroup of (group.titleGroups ?? [])) {
+                        for (const item of (titleGroup.titles ?? [])) {
+                            if (item.title) {
+                                titles.push(item.title)
+                            }
                         }
                     }
                 }
             } else {
-                let res = await Network.get(
-                    `${this.API}/title_list/allV2?format=json`,
-                    this.HEADERS
-                )
-                if (res.status !== 200) throw `HTTP ${res.status}`
-                let json = JSON.parse(res.body)
-                let allGroups = json?.success?.allTitlesViewV2?.AllTitlesGroup ?? []
-                for (let group of allGroups) {
-                    for (let t of (group.titles ?? [])) {
-                        titles.push(t)
-                    }
-                }
+                titles = await this._loadAllTitles()
                 if (category === "oneshots") {
-                    titles = titles.filter(t => t.isOneShot === true)
+                    titles = titles.filter((title) => title.isOneShot === true)
                 }
             }
 
-            titles = titles.filter(t => t.language === this.lang || t.language === undefined)
-
+            titles = titles.filter((title) => this._matchLanguage(title))
             return {
-                comics: titles.slice(0, 200).map(t => this._titleToComic(t)),
+                comics: titles.slice(0, 200).map((title) => this._toComic(title)),
                 maxPage: 1
             }
         }
     }
 
-    // ── 详情与章节 ────────────────────────────────────────────
     comic = {
         loadInfo: async (id) => {
-            let res = await Network.get(
+            const res = await Network.get(
                 `${this.API}/title_detailV3?format=json&title_id=${id}`,
                 this.HEADERS
             )
-            if (res.status !== 200) throw `HTTP ${res.status}`
-
-            let json = JSON.parse(res.body)
-            let detail = json?.success?.titleDetailView ?? {}
-            let title = detail.title ?? {}
-
-            let chapters = {}
-
-            for (let ch of (detail.firstChapterList ?? [])) {
-                if (ch.chapterId) {
-                    chapters[ch.chapterId.toString()] = this._chapterName(ch)
-                }
+            if (res.status !== 200) {
+                throw `HTTP ${res.status}`
             }
-            for (let ch of (detail.lastChapterList ?? [])) {
-                if (ch.chapterId) {
-                    chapters[ch.chapterId.toString()] = this._chapterName(ch)
-                }
-            }
-            for (let group of (detail.chapterListGroup ?? [])) {
-                for (let ch of (group.firstChapterList ?? [])) {
-                    if (ch.chapterId && !chapters[ch.chapterId.toString()]) {
-                        chapters[ch.chapterId.toString()] = this._chapterName(ch)
+
+            const json = JSON.parse(res.body)
+            const detail = json?.success?.titleDetailView ?? {}
+            const title = detail.title ?? {}
+            const chapters = {}
+
+            const addChapters = (list) => {
+                for (const chapter of (list ?? [])) {
+                    if (chapter.chapterId) {
+                        chapters[chapter.chapterId.toString()] = this._chapterName(chapter)
                     }
                 }
-                for (let ch of (group.lastChapterList ?? [])) {
-                    if (ch.chapterId && !chapters[ch.chapterId.toString()]) {
-                        chapters[ch.chapterId.toString()] = this._chapterName(ch)
-                    }
-                }
+            }
+
+            addChapters(detail.firstChapterList)
+            addChapters(detail.lastChapterList)
+            for (const group of (detail.chapterListGroup ?? [])) {
+                addChapters(group.firstChapterList)
+                addChapters(group.lastChapterList)
             }
 
             return new ComicDetails({
                 title: title.name ?? id,
                 subTitle: title.author ?? "",
                 cover: title.portraitImageUrl ?? title.thumbnailUrl ?? "",
-                description: detail.overview ?? detail.viewingPeriodDescription ?? "",
+                description: detail.overview ?? "",
                 tags: {
                     author: title.author ? [title.author] : [],
                     label: title.label?.name ? [title.label.name] : []
                 },
-                chapters: chapters,
+                chapters,
                 url: `https://mangaplus.shueisha.co.jp/titles/${id}`
             })
         },
 
         loadEp: async (comicId, epId) => {
-            let res = await Network.get(
+            const res = await Network.get(
                 `${this.API}/manga_viewer?format=json&chapter_id=${epId}&split=yes&img_quality=high`,
                 this.HEADERS
             )
-            if (res.status !== 200) throw `HTTP ${res.status}`
-
-            let json = JSON.parse(res.body)
-            let pages = json?.success?.mangaViewer?.pages ?? []
-
-            // 将 url 和 encryptionKey 用 "|" 拼接传给 onImageLoad
-            let images = []
-            for (let p of pages) {
-                let mp = p.mangaPage
-                if (!mp || !mp.imageUrl) continue
-                let key = mp.encryptionKey ?? ""
-                images.push(mp.imageUrl + "|" + key)
+            if (res.status !== 200) {
+                throw `HTTP ${res.status}`
             }
 
+            const json = JSON.parse(res.body)
+            const pages = json?.success?.mangaViewer?.pages ?? []
+            const keyMap = {}
+            const images = []
+
+            for (const page of pages) {
+                const mangaPage = page.mangaPage
+                if (!mangaPage?.imageUrl) {
+                    continue
+                }
+
+                images.push(mangaPage.imageUrl)
+                if (mangaPage.encryptionKey) {
+                    keyMap[mangaPage.imageUrl] = mangaPage.encryptionKey
+                }
+            }
+
+            this.saveData(`keys_${epId}`, JSON.stringify(keyMap))
             return { images }
         },
 
-        // 图片需要 XOR 解密
         onImageLoad: async (url, comicId, epId) => {
-            let sepIdx = url.lastIndexOf("|")
-            let realUrl = sepIdx > 0 ? url.substring(0, sepIdx) : url
-            let encKey  = sepIdx > 0 ? url.substring(sepIdx + 1) : ""
+            let encKey = ""
+            try {
+                const raw = this.loadData(`keys_${epId}`)
+                if (raw) {
+                    encKey = JSON.parse(raw)[url] ?? ""
+                }
+            } catch (e) {}
 
             if (!encKey) {
                 return {
-                    url: realUrl,
-                    headers: { "referer": "https://mangaplus.shueisha.co.jp/" }
+                    url,
+                    headers: this.HEADERS
+                }
+            }
+
+            const keyBytes = []
+            for (let i = 0; i < encKey.length; i += 2) {
+                const value = parseInt(encKey.slice(i, i + 2), 16)
+                if (!Number.isNaN(value)) {
+                    keyBytes.push(value)
+                }
+            }
+
+            if (keyBytes.length === 0) {
+                return {
+                    url,
+                    headers: this.HEADERS
                 }
             }
 
             return {
-                url: realUrl,
-                headers: { "referer": "https://mangaplus.shueisha.co.jp/" },
-                modifyImage: `
-                    let modifyImage = (image) => {
-                        let keyHex = "${encKey}";
-                        let keyBytes = [];
-                        for (let i = 0; i < keyHex.length; i += 2) {
-                            keyBytes.push(parseInt(keyHex.substr(i, 2), 16));
-                        }
-                        if (keyBytes.length === 0) return image;
-                        let keyLen = keyBytes.length;
-                        let w = image.width;
-                        let h = image.height;
-                        let result = Image.empty(w, h);
-                        for (let y = 0; y < h; y++) {
-                            for (let x = 0; x < w; x++) {
-                                let pixel = image.getPixel(x, y);
-                                let idx = (y * w + x) * 4;
-                                let r = ((pixel >> 16) & 0xFF) ^ keyBytes[idx % keyLen];
-                                let g = ((pixel >> 8) & 0xFF) ^ keyBytes[(idx + 1) % keyLen];
-                                let b = (pixel & 0xFF) ^ keyBytes[(idx + 2) % keyLen];
-                                let a = (pixel >> 24) & 0xFF;
-                                result.setPixel(x, y, (a << 24) | (r << 16) | (g << 8) | b);
-                            }
-                        }
-                        return result;
+                url,
+                headers: this.HEADERS,
+                onResponse: function (buffer) {
+                    const view = new Uint8Array(buffer)
+                    for (let i = 0; i < view.length; i++) {
+                        view[i] ^= keyBytes[i % keyBytes.length]
                     }
-                `
+                    return buffer
+                }
             }
         },
 
-        onThumbnailLoad: (url) => {
-            let realUrl = url.indexOf("|") > 0 ? url.substring(0, url.lastIndexOf("|")) : url
-            return {
-                url: realUrl,
-                headers: { "referer": "https://mangaplus.shueisha.co.jp/" }
-            }
-        },
+        onThumbnailLoad: (url) => ({
+            url,
+            headers: this.HEADERS
+        }),
 
         idMatch: "^\\d+$",
 
         link: {
             domains: ["mangaplus.shueisha.co.jp"],
             linkToId: (url) => {
-                let m = url.match(/titles\/(\d+)/)
-                return m ? m[1] : null
+                const match = url.match(/titles\/(\d+)/)
+                return match ? match[1] : null
             }
         }
     }
 
-    // ── 工具方法 ──────────────────────────────────────────────
-    _titleToComic(t) {
+    async _loadAllTitles() {
+        const res = await Network.get(
+            `${this.API}/title_list/allV2?format=json`,
+            this.HEADERS
+        )
+        if (res.status !== 200) {
+            throw `HTTP ${res.status}`
+        }
+
+        const json = JSON.parse(res.body)
+        const groups = json?.success?.allTitlesViewV2?.AllTitlesGroup ?? []
+        const titles = []
+        for (const group of groups) {
+            for (const title of (group.titles ?? [])) {
+                titles.push(title)
+            }
+        }
+        return titles
+    }
+
+    _matchLanguage(title) {
+        return title.language === this.lang || title.language === undefined
+    }
+
+    _toComic(title) {
         return new Comic({
-            id: t.titleId?.toString() ?? "",
-            title: t.name ?? "",
-            subTitle: t.author ?? "",
-            cover: t.portraitImageUrl ?? t.thumbnailUrl ?? "",
-            tags: t.label?.name ? [t.label.name] : []
+            id: title.titleId?.toString() ?? "",
+            title: title.name ?? "",
+            subTitle: title.author ?? "",
+            cover: title.portraitImageUrl ?? title.thumbnailUrl ?? "",
+            tags: title.label?.name ? [title.label.name] : []
         })
     }
 
-    _chapterName(ch) {
-        let name = ch.name ?? ""
-        let sub  = ch.subTitle ?? ""
+    _chapterName(chapter) {
+        const name = chapter.name ?? ""
+        const sub = chapter.subTitle ?? ""
         return sub ? `${name} - ${sub}` : name
     }
 }
