@@ -183,6 +183,12 @@
         "version": "1.0.0"
     },
     {
+        "name": "MangaPlus",
+        "fileName": "manga_plus.js",
+        "key": "mangaplus",
+        "version": "1.0.0"
+    },
+    {
         "name": "嗨皮漫画",
         "fileName": "happy.js",
         "key": "happy",
