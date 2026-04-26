@@ -1,18 +1,15 @@
-/** @type {import('./_venera_.js')} */
-
 // ================================================================
-// MANGA Plus by Claude
-//  -  EZVenera 插件
+// MANGA Plus by SHUEISHA  -  EZVenera 插件
 // API: https://jumpg-webapi.tokyo-cdn.com/api
 // 图片有 XOR 加密，通过 modifyImage 脚本处理
 // ================================================================
 
-class MangaPlusSource extends ComicSource {
+class MangaPlus extends ComicSource {
     name = "MANGA Plus"
     key = "manga_plus"
     version = "1.0.0"
-    minAppVersion = "1.0.0"
-    url = "https://cdn.jsdelivr.net/gh/venera-app/venera-configs@main/manga_dex.js"
+    minAppVersion = "1.2.2"
+    url = "https://cdn.jsdelivr.net/gh/venera-app/venera-configs@main/manga_plus.js"
 
     // ── 内部常量 ──────────────────────────────────────────────
     get API() { return "https://jumpg-webapi.tokyo-cdn.com/api" }
@@ -59,7 +56,7 @@ class MangaPlusSource extends ComicSource {
             if (page > 1) return { comics: [], maxPage: 1 }
 
             let res = await Network.get(
-                `${this.API}/title_list/allV2`,
+                `${this.API}/title_list/allV2?format=json`,
                 this.HEADERS
             )
             if (res.status !== 200) throw `HTTP ${res.status}`
@@ -130,7 +127,7 @@ class MangaPlusSource extends ComicSource {
                 const rankMap = { "hottest": 0, "trending": 1, "completed": 2 }
                 let rankType = rankMap[option] ?? 0
                 let res = await Network.get(
-                    `${this.API}/title_list/ranking?rankingType=${rankType}`,
+                    `${this.API}/title_list/ranking?format=json&rankingType=${rankType}`,
                     this.HEADERS
                 )
                 if (res.status !== 200) throw `HTTP ${res.status}`
@@ -151,7 +148,7 @@ class MangaPlusSource extends ComicSource {
 
             if (category === "updates") {
                 let res = await Network.get(
-                    `${this.API}/web/web_homeV4?lang=${this.lang}`,
+                    `${this.API}/web/web_homeV4?format=json&lang=${this.lang}`,
                     this.HEADERS
                 )
                 if (res.status !== 200) throw `HTTP ${res.status}`
@@ -166,7 +163,7 @@ class MangaPlusSource extends ComicSource {
                 }
             } else {
                 let res = await Network.get(
-                    `${this.API}/title_list/allV2`,
+                    `${this.API}/title_list/allV2?format=json`,
                     this.HEADERS
                 )
                 if (res.status !== 200) throw `HTTP ${res.status}`
@@ -195,7 +192,7 @@ class MangaPlusSource extends ComicSource {
     comic = {
         loadInfo: async (id) => {
             let res = await Network.get(
-                `${this.API}/title_detailV3?title_id=${id}`,
+                `${this.API}/title_detailV3?format=json&title_id=${id}`,
                 this.HEADERS
             )
             if (res.status !== 200) throw `HTTP ${res.status}`
@@ -245,7 +242,7 @@ class MangaPlusSource extends ComicSource {
 
         loadEp: async (comicId, epId) => {
             let res = await Network.get(
-                `${this.API}/manga_viewer?chapter_id=${epId}&split=yes&img_quality=high`,
+                `${this.API}/manga_viewer?format=json&chapter_id=${epId}&split=yes&img_quality=high`,
                 this.HEADERS
             )
             if (res.status !== 200) throw `HTTP ${res.status}`
