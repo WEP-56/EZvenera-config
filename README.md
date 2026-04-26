@@ -7,6 +7,8 @@
 这是 EZVenera 的主插件仓库，用来维护 EZVenera 使用的漫画源脚本。
 
 
+
+
 ## 仓库用途
 
 这个仓库主要放三类内容：
@@ -81,6 +83,17 @@ EZVenera 当前重点保留这些插件能力：
 - 评论相关
 - 评分相关
 - `settings.callback`
+
+
+## 使用ai制作插件
+想要制作、修复漫画插件但无从下手？让claude、gpt来做吧！
+你只需要向gpt（https://chatgpt.com/）或claude（https://claude.ai/chat）说：
+```
+请参考文档：https://wep-56.github.io/EZVenera/plugin-guide.html
+基于：example.com（漫画源主站） 制作一个漫画源插件。
+需要具备xxx功能
+```
+不到十分钟，它们就会给你一个还算可用的插件！
 
 ## 模板文件说明
 
