@@ -11,8 +11,8 @@ class MangaPlusSource extends ComicSource {
     name = "MANGA Plus"
     key = "manga_plus"
     version = "1.0.0"
-    minAppVersion = "1.2.2"
-    url = "https://raw.githubusercontent.com/WEP-56/EZVenera-config/main/manga_plus.js"
+    minAppVersion = "1.0.0"
+    url = "https://cdn.jsdelivr.net/gh/venera-app/venera-configs@main/manga_dex.js"
 
     // ── 内部常量 ──────────────────────────────────────────────
     get API() { return "https://jumpg-webapi.tokyo-cdn.com/api" }
