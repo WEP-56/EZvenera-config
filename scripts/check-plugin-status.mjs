@@ -3,12 +3,8 @@ import path from "node:path";
 
 const repoRoot = process.cwd();
 const indexPath = path.join(repoRoot, "index.json");
-const readmePath = path.join(repoRoot, "README.md");
 const docsDir = path.join(repoRoot, "docs");
 const docsJsonPath = path.join(docsDir, "plugin-status.json");
-
-const README_START = "<!-- plugin-status:start -->";
-const README_END = "<!-- plugin-status:end -->";
 
 const REQUEST_TIMEOUT_MS = 15000;
 const MAX_TARGETS_PER_PLUGIN = 2;
@@ -108,7 +104,6 @@ async function main() {
   };
 
   await fs.writeFile(docsJsonPath, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
-  await updateReadme(payload);
 }
 
 async function inspectPlugin(plugin, generatedAt) {
@@ -400,82 +395,6 @@ function buildSummary(plugins) {
   }
 
   return summary;
-}
-
-async function updateReadme(payload) {
-  let readme = await fs.readFile(readmePath, "utf8");
-
-  if (!readme.includes(README_START) || !readme.includes(README_END)) {
-    const insertion = [
-      "",
-      "## Plugin Status",
-      "",
-      `${README_START}`,
-      `${README_END}`,
-      "",
-    ].join("\n");
-
-    if (readme.includes("# EZVenera-config")) {
-      readme = readme.replace("# EZVenera-config", `# EZVenera-config${insertion}`);
-    } else {
-      readme = `${insertion}\n${readme}`;
-    }
-  }
-
-  const generatedAt = formatUtc(payload.generatedAt);
-  const lines = [
-    README_START,
-    `Last updated: ${generatedAt} UTC`,
-    "",
-    `Summary: ${payload.summary.reachable} reachable, ${payload.summary.limited} limited, ${payload.summary.offline} offline, ${payload.summary.error} error, ${payload.summary.self_hosted} self-hosted, ${payload.summary.unconfigured} unconfigured.`,
-    "",
-    "Live dashboard: https://wep-56.github.io/EZvenera-config/",
-    "",
-    "| Plugin | Version | Status | HTTP | Probe | Note |",
-    "| --- | --- | --- | --- | --- | --- |",
-    ...payload.plugins.map((plugin) => {
-      const probe = plugin.probeUrl ? formatMarkdownLink(shortenUrl(plugin.probeUrl), plugin.probeUrl) : "-";
-      return [
-        plugin.key,
-        plugin.version ?? "-",
-        plugin.status,
-        plugin.httpStatus ?? "-",
-        probe,
-        escapeTable(plugin.note ?? "-"),
-      ].map(escapeTable).join(" | ");
-    }).map((row) => `| ${row} |`),
-    README_END,
-  ];
-
-  const pattern = new RegExp(`${escapeRegExp(README_START)}[\\s\\S]*?${escapeRegExp(README_END)}`);
-  readme = readme.replace(pattern, lines.join("\n"));
-  await fs.writeFile(readmePath, readme, "utf8");
-}
-
-function formatUtc(value) {
-  return value.replace(/\.\d{3}Z$/, "Z");
-}
-
-function shortenUrl(value) {
-  try {
-    const url = new URL(value);
-    const pathName = url.pathname.length > 1 ? url.pathname : "";
-    return `${url.hostname}${pathName}`;
-  } catch {
-    return value;
-  }
-}
-
-function formatMarkdownLink(label, url) {
-  return `[${label}](${url})`;
-}
-
-function escapeTable(value) {
-  return String(value).replace(/\|/g, "\\|").replace(/\n/g, " ");
-}
-
-function escapeRegExp(value) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 async function mapWithConcurrency(items, concurrency, iteratee) {
