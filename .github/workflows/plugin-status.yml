@@ -1,6 +1,17 @@
 name: Plugin Status
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/plugin-status.yml"
+      - "scripts/check-plugin-status.mjs"
+      - "docs/index.html"
+      - "docs/.nojekyll"
+      - "index.json"
+      - "*.js"
+      - "README.md"
   workflow_dispatch:
   schedule:
     - cron: "17 3 */3 * *"
