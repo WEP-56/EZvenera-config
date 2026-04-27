@@ -3,6 +3,51 @@
 </p>
 
 # EZVenera-config
+## Plugin Status
+
+<!-- plugin-status:start -->
+Last updated: 2026-04-27T08:39:53Z UTC
+
+Summary: 24 reachable, 5 limited, 0 offline, 0 error, 3 self-hosted, 0 unconfigured.
+
+Live dashboard: https://wep-56.github.io/EZvenera-config/
+
+| Plugin | Version | Status | HTTP | Probe | Note |
+| --- | --- | --- | --- | --- | --- |
+| baozi | 1.1.6 | reachable | 200 | [cn.bzmgcn.com](https://cn.bzmgcn.com/) | Uses the default public domain from plugin settings. |
+| ccc | 1.0.1 | reachable | 200 | [api.creative-comic.tw](https://api.creative-comic.tw/) | - |
+| comick | 1.2.0 | reachable | 200 | [comick.art](https://comick.art/) | - |
+| copy_manga | 1.4.2 | reachable | 200 | [www.2026copy.com](https://www.2026copy.com/) | - |
+| ehentai | 1.1.8 | reachable | 200 | [e-hentai.org/news.php](https://e-hentai.org/news.php) | Forum and main site are checked as a lightweight availability proxy. |
+| goda | 1.0.0 | reachable | 200 | [godamh.com](https://godamh.com/) | Uses the default public site and API hosts from plugin settings. |
+| hcomic | 1.0.0 | reachable | 200 | [h-comic.com](https://h-comic.com/) | - |
+| hitomi | 1.1.2 | reachable | 200 | [hitomi.la](https://hitomi.la/) | Checks the public frontend and tag index host. |
+| hot_manga | 1.0.0 | reachable | 200 | [www.manga2026.com/web/login/loginByAccount](https://www.manga2026.com/web/login/loginByAccount) | - |
+| jcomic | 1.0.0 | reachable | 200 | [jcomic.net](https://jcomic.net/) | - |
+| Komiic | 1.0.3 | reachable | 200 | [komiic.com](https://komiic.com/) | - |
+| manga_dex | 1.1.0 | reachable | 200 | [mangadex.org](https://mangadex.org/) | - |
+| mangaplus | 1.0.0 | reachable | 200 | [mangaplus.shueisha.co.jp](https://mangaplus.shueisha.co.jp/) | - |
+| ManHuaGui | 1.2.1 | reachable | 200 | [www.manhuagui.com](https://www.manhuagui.com/) | - |
+| manhuaren | 1.0.0 | reachable | 200 | [www.manhuaren.com](https://www.manhuaren.com/) | - |
+| manwaba | 1.0.2 | reachable | 200 | [www.mhtmh.org](https://www.mhtmh.org/) | - |
+| mh1234 | 1.0.0 | reachable | 200 | [gmh1234.wszwhg.net](https://gmh1234.wszwhg.net/) | - |
+| mh18 | 1.0.0 | reachable | 200 | [18mh.org](https://18mh.org/) | - |
+| mxs | 1.0.0 | reachable | 200 | [www.mxshm.top](https://www.mxshm.top/) | - |
+| picacg | 1.0.5 | reachable | 200 | [manhuabika.com/pregister/](https://manhuabika.com/pregister/?) | - |
+| shonen_jump_plus | 1.1.1 | reachable | 200 | [shonenjumpplus.com](https://shonenjumpplus.com/) | - |
+| wnacg | 1.0.4 | reachable | 200 | [wn01.link](https://wn01.link/) | - |
+| ykmh | 1.0.0 | reachable | 200 | [www.ykmh.net](https://www.ykmh.net/) | - |
+| zaimanhua | 1.0.2 | reachable | 200 | [i.zaimanhua.com](https://i.zaimanhua.com/) | - |
+| comic_walker | 1.0.0 | limited | 403 | [mobileapp.comic-walker.com](https://mobileapp.comic-walker.com/) | Endpoint responded but may be rate-limited or access-controlled. |
+| happy | 1.0.0 | limited | 403 | [m.happymh.com](https://m.happymh.com/) | Endpoint responded but may be rate-limited or access-controlled. |
+| ikmmh | 1.0.5 | limited | 403 | [www.ikmmh.com](https://www.ikmmh.com/) | Endpoint responded but may be rate-limited or access-controlled. |
+| jm | 1.4.0 | limited | 403 | [www.cdntwice.org](https://www.cdntwice.org/) | JM domains are refreshed dynamically; probe uses the built-in fallback host and image CDN. Endpoint responded but may be rate-limited or access-controlled. |
+| nhentai | 1.0.8 | limited | 403 | [nhentai.net](https://nhentai.net/) | Endpoint responded but may be rate-limited or access-controlled. |
+| kavita | 1.0.0 | self_hosted | - | - | Self-hosted plugin. No public instance is checked by default; set a manual target in scripts/check-plugin-status.mjs if you want to monitor one. |
+| komga | 1.0.0 | self_hosted | - | - | Self-hosted plugin. No public instance is checked by default; set a manual target in scripts/check-plugin-status.mjs if you want to monitor one. |
+| lanraragi | 1.1.0 | self_hosted | - | - | Self-hosted plugin. No public instance is checked by default; set a manual target in scripts/check-plugin-status.mjs if you want to monitor one. |
+<!-- plugin-status:end -->
+
 
 这是 EZVenera 的主插件仓库，用来维护 EZVenera 使用的漫画源脚本。
 

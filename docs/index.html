@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>EZVenera Plugin Status</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f4efe6;
+        --panel: rgba(255, 251, 245, 0.88);
+        --panel-strong: #fffdf8;
+        --text: #1f1a16;
+        --muted: #65584c;
+        --line: rgba(70, 50, 30, 0.12);
+        --ok: #1f7a3a;
+        --warn: #9a6400;
+        --bad: #b03030;
+        --idle: #65758a;
+        --accent: #b85c38;
+        --shadow: 0 18px 50px rgba(72, 43, 20, 0.12);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(circle at top left, rgba(184, 92, 56, 0.22), transparent 32%),
+          radial-gradient(circle at top right, rgba(90, 138, 120, 0.18), transparent 26%),
+          linear-gradient(180deg, #f8f4ec 0%, #efe6d7 100%);
+        min-height: 100vh;
+      }
+
+      .wrap {
+        width: min(1180px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 40px 0 56px;
+      }
+
+      .hero {
+        background: var(--panel);
+        backdrop-filter: blur(10px);
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        box-shadow: var(--shadow);
+        padding: 28px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(2rem, 5vw, 3.8rem);
+        line-height: 0.95;
+        letter-spacing: -0.05em;
+      }
+
+      .sub {
+        margin: 14px 0 0;
+        max-width: 760px;
+        color: var(--muted);
+        font-size: 1rem;
+        line-height: 1.65;
+      }
+
+      .meta {
+        margin-top: 18px;
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 14px;
+        margin: 22px 0 0;
+      }
+
+      .stat {
+        background: var(--panel-strong);
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        padding: 16px 18px;
+      }
+
+      .stat strong {
+        display: block;
+        font-size: 2rem;
+        letter-spacing: -0.04em;
+      }
+
+      .stat span {
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+
+      .table-wrap {
+        margin-top: 24px;
+        background: var(--panel);
+        backdrop-filter: blur(10px);
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      th,
+      td {
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+        font-size: 0.95rem;
+      }
+
+      th {
+        background: rgba(255, 255, 255, 0.52);
+        color: var(--muted);
+        font-weight: 600;
+        position: sticky;
+        top: 0;
+      }
+
+      tbody tr:hover {
+        background: rgba(255, 255, 255, 0.46);
+      }
+
+      .status {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 600;
+      }
+
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        display: inline-block;
+      }
+
+      .reachable .dot {
+        background: var(--ok);
+      }
+
+      .limited .dot {
+        background: var(--warn);
+      }
+
+      .offline .dot,
+      .error .dot {
+        background: var(--bad);
+      }
+
+      .self_hosted .dot,
+      .unconfigured .dot {
+        background: var(--idle);
+      }
+
+      a {
+        color: var(--accent);
+      }
+
+      .empty,
+      .loading {
+        padding: 28px;
+        color: var(--muted);
+      }
+
+      @media (max-width: 840px) {
+        .wrap {
+          width: min(100% - 20px, 1180px);
+          padding-top: 20px;
+        }
+
+        .hero,
+        .table-wrap {
+          border-radius: 20px;
+        }
+
+        th,
+        td {
+          padding: 12px;
+          font-size: 0.9rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="wrap">
+      <section class="hero">
+        <h1>EZVenera Plugin Status</h1>
+        <p class="sub">
+          Scheduled health checks for the plugin repository. This page reflects lightweight network probes against each plugin's
+          public site or API target, not a full end-to-end execution inside the app runtime.
+        </p>
+        <div id="meta" class="meta">Loading latest status snapshot...</div>
+        <div id="stats" class="stats"></div>
+      </section>
+
+      <section class="table-wrap">
+        <div id="content" class="loading">Loading plugin results...</div>
+      </section>
+    </main>
+
+    <script>
+      const statusOrder = ["reachable", "limited", "offline", "error", "self_hosted", "unconfigured"];
+
+      const statusLabel = {
+        reachable: "reachable",
+        limited: "limited",
+        offline: "offline",
+        error: "error",
+        self_hosted: "self-hosted",
+        unconfigured: "unconfigured",
+      };
+
+      function escapeHtml(value) {
+        return String(value)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+
+      function renderStats(summary) {
+        const items = [
+          ["Total", summary.total],
+          ["Reachable", summary.reachable],
+          ["Limited", summary.limited],
+          ["Offline", summary.offline],
+          ["Error", summary.error],
+          ["Self-hosted", summary.self_hosted],
+          ["Unconfigured", summary.unconfigured],
+        ];
+
+        document.getElementById("stats").innerHTML = items
+          .map(([label, value]) => `<div class="stat"><strong>${value}</strong><span>${label}</span></div>`)
+          .join("");
+      }
+
+      function renderTable(plugins) {
+        if (!plugins.length) {
+          document.getElementById("content").innerHTML = '<div class="empty">No plugin results found.</div>';
+          return;
+        }
+
+        const rows = plugins
+          .slice()
+          .sort((a, b) => statusOrder.indexOf(a.status) - statusOrder.indexOf(b.status) || a.key.localeCompare(b.key))
+          .map((plugin) => {
+            const probe = plugin.probeUrl
+              ? `<a href="${escapeHtml(plugin.probeUrl)}" target="_blank" rel="noreferrer">${escapeHtml(plugin.probeUrl)}</a>`
+              : "-";
+            return `
+              <tr>
+                <td><strong>${escapeHtml(plugin.key)}</strong><br /><span style="color:var(--muted)">${escapeHtml(plugin.name || "")}</span></td>
+                <td>${escapeHtml(plugin.version || "-")}</td>
+                <td><span class="status ${escapeHtml(plugin.status)}"><span class="dot"></span>${escapeHtml(statusLabel[plugin.status] || plugin.status)}</span></td>
+                <td>${plugin.httpStatus ?? "-"}</td>
+                <td>${plugin.durationMs ?? "-"}</td>
+                <td>${probe}</td>
+                <td>${escapeHtml(plugin.note || "-")}</td>
+              </tr>
+            `;
+          })
+          .join("");
+
+        document.getElementById("content").innerHTML = `
+          <table>
+            <thead>
+              <tr>
+                <th>Plugin</th>
+                <th>Version</th>
+                <th>Status</th>
+                <th>HTTP</th>
+                <th>Latency (ms)</th>
+                <th>Probe</th>
+                <th>Note</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        `;
+      }
+
+      async function boot() {
+        try {
+          const response = await fetch("./plugin-status.json", { cache: "no-store" });
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+          const data = await response.json();
+          document.getElementById("meta").textContent = `Last updated: ${new Date(data.generatedAt).toLocaleString()} | Source: scheduled GitHub Actions`;
+          renderStats(data.summary);
+          renderTable(data.plugins || []);
+        } catch (error) {
+          document.getElementById("meta").textContent = "Failed to load the latest status snapshot.";
+          document.getElementById("content").innerHTML = `<div class="empty">${escapeHtml(error.message || String(error))}</div>`;
+        }
+      }
+
+      boot();
+    </script>
+  </body>
+</html>
